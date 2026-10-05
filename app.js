@@ -1,10 +1,11 @@
 /**
- * User Management System - v1.0.0
- * Release Date: Stable Production Release
+ * User Management System - v1.0.1
+ * Release Date: Hotfix Security Patch
  * 
- * VULNERABILITY NOTE (v1.0.0):
- * Lỗi nghiêm trọng: Hàm getUserById trả về toàn bộ trường dữ liệu của người dùng,
- * bao gồm cả thông tin nhạy cảm: password_hash, ssn, secret_token.
+ * HOTFIX PATCH (v1.0.1):
+ * Đã khắc phục lỗ hổng lộ thông tin người dùng:
+ * Tách bỏ toàn bộ các trường nhạy cảm (password_hash, ssn, secret_token)
+ * trước khi trả về dữ liệu cho tầng giao diện (client-side).
  */
 
 const database = [
@@ -37,9 +38,25 @@ const database = [
   }
 ];
 
+// Danh sách các trường nhạy cảm bị nghiêm cấm trả về client
+const SENSITIVE_FIELDS = ["password_hash", "ssn", "secret_token"];
+
+function sanitizeUser(user) {
+  if (!user) return null;
+  // Trích lọc chỉ giữ lại các trường thông tin an toàn công khai
+  const safeProfile = {};
+  for (const [key, value] of Object.entries(user)) {
+    if (!SENSITIVE_FIELDS.includes(key)) {
+      safeProfile[key] = value;
+    }
+  }
+  return safeProfile;
+}
+
 function getUserById(id) {
-  // LỖI BẢO MẬT v1.0.0: Trả về trực tiếp object gốc không qua lọc trường nhạy cảm!
-  return database.find(user => user.id === id);
+  const rawUser = database.find(user => user.id === id);
+  // ĐÃ VÁ LỖI: Làm sạch dữ liệu trước khi trả về
+  return sanitizeUser(rawUser);
 }
 
 function handleFetchUser() {
